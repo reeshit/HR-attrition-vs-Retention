@@ -2,6 +2,9 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
+import openai
+openai.api_key = "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"
+
 
 # Set page title
 st.title("Employee Analysis Dashboard")
@@ -22,18 +25,14 @@ with col3:
 df_age = pd.read_csv("Age Group.csv", sep="\t", encoding="utf-16", header=None)
 df_age.columns = ["Category", "Metric", "< 25", "25-34", "35-44", "45-55", "> 55"]
 
-# Filter to keep only rows where Metric is "Employee Count"
 df_age = df_age[df_age["Metric"] == "Employee Count"].drop(columns=["Metric"])
 
-# Transpose the dataframe for plotting
 df_age = df_age.set_index("Category").transpose().reset_index()
 df_age.rename(columns={"index": "Age Group"}, inplace=True)
 
-# Convert counts to integer
 df_age["Attrition"] = df_age["Attrition"].astype(float).astype(int)
 df_age["Retention"] = df_age["Retention"].astype(float).astype(int)
 
-# Create the Age Group stacked bar chart
 fig_age = px.bar(
     df_age,
     x="Age Group",
@@ -41,15 +40,13 @@ fig_age = px.bar(
     title="Attrition vs Retention Across Age Groups",
     labels={"value": "Employee Count", "variable": "Category"},
     color_discrete_map={"Retention": "black", "Attrition": "tan"},
-    barmode="stack"
-)
+    barmode="stack")
 
 st.plotly_chart(fig_age, use_container_width=True)
 
 #############################################
 # 2. Education Level Bar Chart
 #############################################
-# Manual Education Level Data
 data_edu = {
     "Education Level": [
         "Bachelor's Degree", "Bachelor's Degree",
@@ -70,10 +67,8 @@ data_edu = {
 df_edu = pd.DataFrame(data_edu)
 df_edu["Category"] = df_edu["Category"].str.strip()
 
-# Pivot table for proper grouping
 df_pivot = df_edu.pivot(index="Education Level", columns="Category", values="Employee Count").reset_index()
 
-# Create Education Level grouped bar chart
 fig_edu = go.Figure()
 fig_edu.add_trace(go.Bar(
     x=df_pivot["Education Level"],
@@ -92,28 +87,23 @@ fig_edu.update_layout(
     barmode="group",
     xaxis_title="Education Level",
     yaxis_title="Employee Count",
-    template="simple_white"
-)
+    template="simple_white")
 
 st.plotly_chart(fig_edu, use_container_width=True)
 
 #############################################
 # 3. Gender Donut Charts
 #############################################
-# Load and process Gender data
 df_gender = pd.read_csv('Gender.csv', sep="\t", encoding="utf-16")
 df_gender.columns = ["Gender", "Category", "% Attrition", "Attrition Count", "Employee Count"]
 
-# Remove empty rows and convert Employee Count to numeric
 df_gender = df_gender.dropna(subset=["Employee Count"])
 df_gender["Employee Count"] = df_gender["Employee Count"].astype(str).str.strip()
 df_gender["Employee Count"] = df_gender["Employee Count"].astype(float).astype(int)
 
-# Separate data for Female and Male
 df_female = df_gender[df_gender["Gender"] == "Female"]
 df_male = df_gender[df_gender["Gender"] == "Male"]
 
-# Create Donut Chart for Female
 fig_female = go.Figure(go.Pie(
     labels=df_female["Category"],
     values=df_female["Employee Count"],
@@ -123,7 +113,6 @@ fig_female = go.Figure(go.Pie(
 ))
 fig_female.update_layout(title_text="Female")
 
-# Create Donut Chart for Male
 fig_male = go.Figure(go.Pie(
     labels=df_male["Category"],
     values=df_male["Employee Count"],
@@ -133,7 +122,6 @@ fig_male = go.Figure(go.Pie(
 ))
 fig_male.update_layout(title_text="Male")
 
-# Display the two donut charts side-by-side
 col1, col2 = st.columns(2)
 with col1:
     st.plotly_chart(fig_female, use_container_width=True)
@@ -143,7 +131,6 @@ with col2:
 #############################################
 # 4. Employee Data Table (Job Title)
 #############################################
-# Manual Job Title Data
 data_job = [
     {"Job Title": "Data Visualization Technician", "Attrition": 62, "Retention": 197},
     {"Job Title": "Sales Executive", "Attrition": 57, "Retention": 269},
@@ -153,7 +140,6 @@ data_job = [
 ]
 df_job = pd.DataFrame(data_job)
 
-# Create table using Plotly's Table trace
 fig_job = go.Figure(data=[go.Table(
     header=dict(
         values=["Job Title", "Attrition", "Retention"],
@@ -171,10 +157,15 @@ fig_job = go.Figure(data=[go.Table(
 fig_job.update_layout(title="Employee Data")
 
 st.plotly_chart(fig_job, use_container_width=True)
+
+#############################################
+# 5. User Query Input
+#############################################
 query = st.text_area("Ask a question about the data:", "", height=100)
 if st.button("Submit") and query:
     response = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",
-        messages=[{"role": "user", "content": query}]
-    )
+    model="gpt-3.5-turbo",
+    messages=[{"role": "user", "content": query}]
+)
+
     st.write(response["choices"][0]["message"]["content"])
