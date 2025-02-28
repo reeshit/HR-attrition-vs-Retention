@@ -171,3 +171,10 @@ fig_job = go.Figure(data=[go.Table(
 fig_job.update_layout(title="Employee Data")
 
 st.plotly_chart(fig_job, use_container_width=True)
+query = st.text_area("Ask a question about the data:", "", height=100)
+if st.button("Submit") and query:
+    response = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",
+        messages=[{"role": "user", "content": query}]
+    )
+    st.write(response["choices"][0]["message"]["content"])
